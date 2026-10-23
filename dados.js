@@ -15,20 +15,6 @@ window.DADOS_INICIAIS = {
         { name: 'Waypoint 3 (fora da Ponta do Boi)', lat: -24.00531, lon: -45.18102, note: '' },
         { name: 'Barra de Icapara', lat: -24.68685, lon: -47.42140, note: "24°41.211'S 47°25.284'W, coordenada exata do Navionics" }
       ]
-    },
-    {
-      id: 'r-interno',
-      name: 'Trecho interno até Paranaguá (rascunho)',
-      color: '#2ec4d6',
-      draft: true,
-      points: [
-        { name: 'Barra de Icapara', lat: -24.68685, lon: -47.42140, note: '' },
-        { name: 'Cananéia', lat: -25.0146, lon: -47.9269, note: 'Aproximado. Ajuste ao canal.' },
-        { name: 'Ariri', lat: -25.2155, lon: -48.0420, note: 'Aproximado. Ajuste ao canal.' },
-        { name: 'Canal do Varadouro', lat: -25.2300, lon: -48.0900, note: 'Posição aproximada da região. Ajuste.' },
-        { name: 'Guaraqueçaba', lat: -25.3069, lon: -48.3297, note: 'Aproximado.' },
-        { name: 'Paranaguá', lat: -25.5163, lon: -48.5225, note: 'Aproximado.' }
-      ]
     }
   ],
   marks: [

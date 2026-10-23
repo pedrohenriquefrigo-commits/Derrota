@@ -21,12 +21,22 @@
   var S = load();
   function freshState() {
     var d = JSON.parse(JSON.stringify(window.DADOS_INICIAIS));
-    return { routes: d.routes, marks: d.marks, selRoute: d.routes[0] && d.routes[0].id, nav: null, settings: Object.assign({}, DEFAULT_SETTINGS), track: [] };
+    return { migr1: true, routes: d.routes, marks: d.marks, selRoute: d.routes[0] && d.routes[0].id, nav: null, settings: Object.assign({}, DEFAULT_SETTINGS), track: [] };
   }
   function load() {
     try {
       var raw = localStorage.getItem(STORE);
-      if (raw) { var s = JSON.parse(raw); s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings || {}); s.track = s.track || []; return s; }
+      if (raw) {
+        var s = JSON.parse(raw); s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings || {}); s.track = s.track || [];
+        // remove o rascunho do trecho interno (posições erradas no Varadouro)
+        if (!s.migr1) {
+          s.routes = (s.routes || []).filter(function (r) { return r.id !== 'r-interno'; });
+          if (s.nav && s.nav.routeId === 'r-interno') s.nav = null;
+          if (s.selRoute === 'r-interno') s.selRoute = s.routes[0] && s.routes[0].id;
+          s.migr1 = true;
+        }
+        return s;
+      }
     } catch (e) { }
     return freshState();
   }

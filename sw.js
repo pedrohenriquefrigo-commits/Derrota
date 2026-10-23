@@ -1,5 +1,5 @@
 /* Service worker: guarda o app e os mapas para uso sem internet */
-var SHELL = 'shell-v4';
+var SHELL = 'shell-v5';
 var CHARTS = 'cartas-v1';
 var TILES = 'tiles-v1';
 var SHELL_FILES = [
