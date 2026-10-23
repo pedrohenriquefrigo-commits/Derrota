@@ -1,5 +1,6 @@
 /* Service worker: guarda o app e os mapas para uso sem internet */
-var SHELL = 'shell-v3';
+var SHELL = 'shell-v4';
+var CHARTS = 'cartas-v1';
 var TILES = 'tiles-v1';
 var SHELL_FILES = [
   './', 'index.html', 'style.css', 'geo.js', 'dados.js', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
@@ -17,7 +18,7 @@ self.addEventListener('install', function (e) {
 });
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (keys) {
-    return Promise.all(keys.filter(function (k) { return k !== SHELL && k !== TILES; }).map(function (k) { return caches.delete(k); }));
+    return Promise.all(keys.filter(function (k) { return k !== SHELL && k !== TILES && k !== CHARTS; }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
 
@@ -25,6 +26,14 @@ self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
   var url = new URL(req.url);
+
+  // Cartas náuticas: só existem no aparelho (importadas pelo usuário)
+  if (url.origin === self.location.origin && url.pathname.indexOf('/carta/') >= 0) {
+    e.respondWith(caches.open(CHARTS).then(function (c) {
+      return c.match(url.href).then(function (hit) { return hit || new Response('', { status: 404 }); });
+    }));
+    return;
+  }
 
   // Mapas: primeiro do aparelho, depois da internet (e guarda o que vier)
   if (TILE_HOSTS.indexOf(url.hostname) >= 0) {

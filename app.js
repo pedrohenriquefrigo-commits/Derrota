@@ -5,17 +5,19 @@
   var $ = function (s, el) { return (el || document).querySelector(s); };
   var STORE = 'derrota.v1';
   var TILE_CACHE = 'tiles-v1';
+  var CHART_CACHE = 'cartas-v1';
 
   // ---------- Camadas de mapa ----------
   var SOURCES = {
     sat: { name: 'Satélite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: 'Imagens © Esri, Maxar, Earthstar Geographics', kb: 22 },
     map: { name: 'Mapa', url: 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', attr: '© OpenStreetMap © CARTO', kb: 14 },
+    chart: { name: 'Carta náutica', url: new URL('carta/{z}/{x}/{y}.png', location.href).href.replace('%7Bz%7D', '{z}').replace('%7Bx%7D', '{x}').replace('%7By%7D', '{y}'), attr: 'Cartas © DHN/Marinha do Brasil', kb: 12 },
     sea: { name: 'Sinais náuticos', url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', attr: 'Sinais © OpenSeaMap', kb: 2 }
   };
   function tileUrl(key, z, x, y) { return SOURCES[key].url.replace('{z}', z).replace('{x}', x).replace('{y}', y); }
 
   // ---------- Estado ----------
-  var DEFAULT_SETTINGS = { fmt: 'ddm', decl: -21.5, arrive: 0.1, speed: 5, base: 'sat', sea: true, showMarks: true, showTrack: true, rec: true, night: false, wake: false, buf: 2, zmax: 14, dlSat: true, dlMap: false, dlSea: true };
+  var DEFAULT_SETTINGS = { fmt: 'ddm', decl: -21.5, arrive: 0.1, speed: 5, base: 'sat', sea: true, showMarks: true, showTrack: true, rec: true, night: false, wake: false, buf: 2, zmax: 14, dlSat: true, dlMap: false, dlSea: true, chart: true, chartInfo: null };
   var S = load();
   function freshState() {
     var d = JSON.parse(JSON.stringify(window.DADOS_INICIAIS));
@@ -91,9 +93,11 @@
     map: new SmartLayer({ key: 'map', maxUp: 8, maxZoom: 18, attribution: SOURCES.map.attr })
   };
   var seaLayer = new SmartLayer({ key: 'sea', maxUp: 3, maxZoom: 18, attribution: SOURCES.sea.attr, zIndex: 5 });
+  var chartLayer = new SmartLayer({ key: 'chart', maxUp: 6, maxZoom: 18, attribution: SOURCES.chart.attr, zIndex: 3 });
   function applyLayers() {
     Object.keys(baseLayers).forEach(function (k) { if (k === set.base) baseLayers[k].addTo(map); else map.removeLayer(baseLayers[k]); });
     if (set.sea) seaLayer.addTo(map); else map.removeLayer(seaLayer);
+    if (set.chart && set.chartInfo) chartLayer.addTo(map); else map.removeLayer(chartLayer);
     if (set.showMarks) marksLayer.addTo(map); else map.removeLayer(marksLayer);
     if (set.showTrack) trackLine.addTo(map); else map.removeLayer(trackLine);
   }
@@ -656,6 +660,10 @@
       '<h3>Área que está na tela</h3><p class="muted">Use para trechos estreitos, como o Varadouro: aproxime o mapa no trecho e baixe com mais detalhe (até zoom ' + Math.max(+set.zmax, Math.min(17, map.getZoom() + 2)) + ').</p><div class="estimate">' + estimate(scr) + '</div>' +
       '<div class="row-btns"><button class="btn" data-a="dl-screen"' + (dl.running || scr.length > 40000 ? ' disabled' : '') + '>Baixar área da tela</button>' + (scr.length > 40000 ? '<span class="muted">Aproxime mais o mapa.</span>' : '') + '</div>' +
       '<div id="dlBox"' + (dl.running || dl.total ? '' : ' hidden') + '><div class="progress"><div id="dlBar"></div></div><div class="stat" id="dlTxt"></div><div class="row-btns" style="margin-top:6px"><button class="btn sm" data-a="dl-cancel"' + (dl.running ? '' : ' hidden') + '>Cancelar download</button></div></div>' +
+      '<h3>Carta náutica</h3>' +
+      (set.chartInfo ? '<div class="stat">Importada: ' + nf(set.chartInfo.count, 0) + ' blocos · ' + esc(set.chartInfo.name) + '</div>' : '<p class="muted">Importe o arquivo de cartas que o Claude preparou (cartas-*.zip). Ele fica só no seu aparelho.</p>') +
+      '<div class="row-btns"><button class="btn' + (set.chartInfo ? '' : ' primary') + '" data-a="chart-imp"' + (chartImp.running ? ' disabled' : '') + '>' + (set.chartInfo ? 'Importar de novo' : 'Importar cartas') + '</button>' + (set.chartInfo ? '<button class="btn danger sm" data-a="chart-del">Remover cartas</button>' : '') + '</div>' +
+      '<div id="chartBox"' + (chartImp.running ? '' : ' hidden') + '><div class="progress"><div id="chartBar"></div></div><div class="stat" id="chartTxt"></div></div>' +
       '<h3>Manutenção</h3><div class="row-btns"><button class="btn danger sm" data-a="clear">Apagar mapas baixados</button></div><div id="clearBox"></div>';
     ['dlSat', 'dlMap', 'dlSea'].forEach(function (k) { $('#' + k, pane).onchange = function () { set[k] = this.checked; save(); renderOffline(); }; });
     $('#bufSel', pane).onchange = function () { set.buf = +this.value; save(); renderOffline(); };
@@ -668,9 +676,11 @@
       else if (a === 'dl-cancel') dl.cancel = true;
       else if (a === 'clear') $('#clearBox').innerHTML = '<div class="confirm">Apagar todos os mapas salvos no aparelho? <span class="spacer"></span><button class="btn ghost sm" data-a="clear-no">Cancelar</button><button class="btn danger sm" data-a="clear-yes">Apagar</button></div>';
       else if (a === 'clear-no') $('#clearBox').innerHTML = '';
+      else if (a === 'chart-imp') $('#chartInput').click();
+      else if (a === 'chart-del') { caches.delete(CHART_CACHE).then(function () { set.chartInfo = null; save(); applyLayers(); toast('Cartas removidas'); renderOffline(); }); }
       else if (a === 'clear-yes') { caches.delete(TILE_CACHE).then(function () { toast('Mapas apagados'); dl.total = 0; renderOffline(); }); }
     };
-    updateDlUi(); refreshStorage();
+    updateDlUi(); chartUi(); refreshStorage();
   }
   function refreshStorage() {
     var el = $('#offStat'); if (!el) return;
@@ -729,6 +739,74 @@
     toast(dl.cancel ? 'Download cancelado' : 'Mapas salvos no aparelho', 3500);
     if (curTab === 'offline') renderOffline(); else updateDlUi();
   }
+  // ---------- Importar cartas (zip com z/x/y.png) ----------
+  var chartImp = { running: false };
+  async function readZipEntries(file) {
+    var tailLen = Math.min(file.size, 65557);
+    var tail = new DataView(await file.slice(file.size - tailLen).arrayBuffer());
+    var eocd = -1;
+    for (var i = tailLen - 22; i >= 0; i--) if (tail.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error('Arquivo não é um .zip válido.');
+    var count = tail.getUint16(eocd + 10, true), cdSize = tail.getUint32(eocd + 12, true), cdOff = tail.getUint32(eocd + 16, true);
+    var cd = new DataView(await file.slice(cdOff, cdOff + cdSize).arrayBuffer()), dec = new TextDecoder(), p = 0, out = [];
+    for (var k = 0; k < count; k++) {
+      if (cd.getUint32(p, true) !== 0x02014b50) break;
+      var method = cd.getUint16(p + 10, true), csize = cd.getUint32(p + 20, true);
+      var nl = cd.getUint16(p + 28, true), el = cd.getUint16(p + 30, true), cl = cd.getUint16(p + 32, true), off = cd.getUint32(p + 42, true);
+      var name = dec.decode(new Uint8Array(cd.buffer, cd.byteOffset + p + 46, nl));
+      out.push({ name: name, method: method, csize: csize, off: off });
+      p += 46 + nl + el + cl;
+    }
+    return out;
+  }
+  async function entryBlob(file, e) {
+    var lh = new DataView(await file.slice(e.off, e.off + 30).arrayBuffer());
+    var start = e.off + 30 + lh.getUint16(26, true) + lh.getUint16(28, true);
+    var blob = file.slice(start, start + e.csize);
+    if (e.method === 0) return blob;
+    if (e.method === 8 && 'DecompressionStream' in window) return await new Response(blob.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+    throw new Error('Formato de compressão não suportado.');
+  }
+  function chartUi() {
+    var bar = $('#chartBar'), txt = $('#chartTxt'), box = $('#chartBox'); if (!bar) return;
+    box.hidden = !chartImp.running && !chartImp.total;
+    var pct = chartImp.total ? Math.round(chartImp.done / chartImp.total * 100) : 0;
+    bar.style.width = pct + '%';
+    txt.textContent = chartImp.running ? 'Importando ' + chartImp.done + ' de ' + chartImp.total + ' (' + pct + '%)' : chartImp.msg || '';
+  }
+  async function importCharts(file) {
+    if (!('caches' in window)) { toast('Este navegador não permite guardar as cartas.'); return; }
+    chartImp = { running: true, done: 0, total: 0 };
+    if (curTab === 'offline') renderOffline();
+    try {
+      if (navigator.storage && navigator.storage.persist) { try { await navigator.storage.persist(); } catch (e) { } }
+      var entries = (await readZipEntries(file)).filter(function (e) { return /^\d+\/\d+\/\d+\.png$/.test(e.name); });
+      if (!entries.length) throw new Error('Esse arquivo não tem cartas no formato do app.');
+      chartImp.total = entries.length; chartUi();
+      await caches.delete(CHART_CACHE);
+      var cache = await caches.open(CHART_CACHE), i = 0;
+      async function worker() {
+        while (i < entries.length) {
+          var e = entries[i++];
+          var b = await entryBlob(file, e);
+          await cache.put(new URL('carta/' + e.name, location.href).href, new Response(b, { headers: { 'Content-Type': 'image/png' } }));
+          chartImp.done++; if (chartImp.done % 50 === 0) chartUi();
+        }
+      }
+      await Promise.all([worker(), worker(), worker(), worker()]);
+      set.chartInfo = { count: entries.length, name: file.name, at: Date.now() }; set.chart = true; save();
+      $('#ovChart').checked = true;
+      chartImp.running = false; chartImp.msg = 'Pronto: ' + entries.length + ' blocos de carta guardados no aparelho.';
+      map.removeLayer(chartLayer); applyLayers();
+      toast('Cartas náuticas importadas', 3500);
+    } catch (err) {
+      chartImp.running = false; chartImp.msg = 'Não deu certo: ' + (err && err.message ? err.message : err) + ' Tente de novo com o arquivo inteiro baixado.';
+      toast('Falha ao importar as cartas', 4000);
+    }
+    if (curTab === 'offline') renderOffline(); else chartUi();
+  }
+  $('#chartInput').onchange = function () { var f = this.files[0]; this.value = ''; if (f) importCharts(f); };
+
   window.addEventListener('online', refreshStorage); window.addEventListener('offline', refreshStorage);
 
   // ---------- Painel: Ajustes ----------
@@ -776,6 +854,11 @@
   $('#btnLayers').onclick = function (e) { e.stopPropagation(); $('#layerMenu').hidden = !$('#layerMenu').hidden; };
   document.addEventListener('click', function (e) { if (!$('#layerMenu').hidden && !e.target.closest('#layerMenu') && !e.target.closest('#btnLayers')) $('#layerMenu').hidden = true; });
   $('#baseSat').checked = set.base === 'sat'; $('#baseMap').checked = set.base === 'map';
+  $('#ovChart').checked = set.chart;
+  $('#ovChart').onchange = function () {
+    set.chart = this.checked; save(); applyLayers();
+    if (this.checked && !set.chartInfo) toast('Nenhuma carta importada ainda. Veja a aba Offline.', 4000);
+  };
   $('#ovSea').checked = set.sea; $('#ovMarks').checked = set.showMarks; $('#ovTrack').checked = set.showTrack;
   document.querySelectorAll('input[name=base]').forEach(function (r) { r.onchange = function () { set.base = this.value; save(); applyLayers(); }; });
   $('#ovSea').onchange = function () { set.sea = this.checked; save(); applyLayers(); };

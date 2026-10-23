@@ -12,8 +12,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
-<link rel="stylesheet" href="leaflet.css?v=3">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="leaflet.css?v=4">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <script>
@@ -76,6 +76,7 @@ window.addEventListener('error', function (e) {
   <label class="opt"><input type="radio" name="base" value="sat" id="baseSat" checked> Satélite</label>
   <label class="opt"><input type="radio" name="base" value="map" id="baseMap"> Mapa</label>
   <div class="pop-title">Sobreposição</div>
+  <label class="opt"><input type="checkbox" id="ovChart" checked> Carta náutica (Marinha)</label>
   <label class="opt"><input type="checkbox" id="ovSea" checked> Sinais náuticos (OpenSeaMap)</label>
   <label class="opt"><input type="checkbox" id="ovMarks" checked> Pontos de referência</label>
   <label class="opt"><input type="checkbox" id="ovTrack" checked> Rastro percorrido</label>
@@ -128,11 +129,12 @@ window.addEventListener('error', function (e) {
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<input type="file" id="chartInput" accept=".zip,application/zip" hidden>
 <input type="file" id="fileInput" accept=".gpx,.kml,.csv,.txt,application/gpx+xml,application/vnd.google-earth.kml+xml,text/plain,text/csv" hidden>
 
-<script src="leaflet.js?v=3"></script>
-<script src="geo.js?v=3"></script>
-<script src="dados.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script src="leaflet.js?v=4"></script>
+<script src="geo.js?v=4"></script>
+<script src="dados.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
