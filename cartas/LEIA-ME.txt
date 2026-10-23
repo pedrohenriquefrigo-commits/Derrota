@@ -1,0 +1,4 @@
+Cartas náuticas raster da DHN/CHM (Marinha do Brasil), convertidas para blocos de mapa
+para uso pessoal e não comercial neste app. Direitos autorais da DHN.
+Fonte: https://www.marinha.mil.br/chm/dados-do-segnav/cartas-raster
+Não substituem as cartas oficiais atualizadas.

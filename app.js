@@ -6,6 +6,7 @@
   var STORE = 'derrota.v1';
   var TILE_CACHE = 'tiles-v1';
   var CHART_CACHE = 'cartas-v1';
+  var CHART_VER = 1;
 
   // ---------- Camadas de mapa ----------
   var SOURCES = {
@@ -744,8 +745,10 @@
       '<div class="row-btns"><button class="btn" data-a="dl-screen"' + (dl.running || scr.length > 40000 ? ' disabled' : '') + '>Baixar área da tela</button>' + (scr.length > 40000 ? '<span class="muted">Aproxime mais o mapa.</span>' : '') + '</div>' +
       '<div id="dlBox"' + (dl.running || dl.total ? '' : ' hidden') + '><div class="progress"><div id="dlBar"></div></div><div class="stat" id="dlTxt"></div><div class="row-btns" style="margin-top:6px"><button class="btn sm" data-a="dl-cancel"' + (dl.running ? '' : ' hidden') + '>Cancelar download</button></div></div>' +
       '<h3>Carta náutica</h3>' +
-      (set.chartInfo ? '<div class="stat">Importada: ' + nf(set.chartInfo.count, 0) + ' blocos · ' + esc(set.chartInfo.name) + '</div>' : '<p class="muted">Importe o arquivo de cartas que o Claude preparou (cartas-*.zip). Ele fica só no seu aparelho.</p>') +
-      '<div class="row-btns"><button class="btn' + (set.chartInfo ? '' : ' primary') + '" data-a="chart-imp"' + (chartImp.running ? ' disabled' : '') + '>' + (set.chartInfo ? 'Importar de novo' : 'Importar cartas') + '</button>' + (set.chartInfo ? '<button class="btn danger sm" data-a="chart-del">Remover cartas</button>' : '') + '</div>' +
+      (set.chartInfo ? '<div class="stat">No aparelho: ' + nf(set.chartInfo.count, 0) + ' blocos · ' + esc(set.chartInfo.name) + '</div>' : '<p class="muted">Cartas da Marinha de Paraty a Paranaguá, cerca de 24 MB. Baixe no Wi-Fi.</p>') +
+      '<div class="row-btns"><button class="btn' + (set.chartInfo ? '' : ' primary') + '" data-a="chart-dl"' + (chartImp.running ? ' disabled' : '') + '>' + (set.chartInfo ? 'Baixar de novo' : 'Baixar cartas') + '</button>' +
+      '<button class="btn sm" data-a="chart-imp"' + (chartImp.running ? ' disabled' : '') + '>Importar arquivo</button>' +
+      (set.chartInfo ? '<button class="btn danger sm" data-a="chart-del">Remover cartas</button>' : '') + '</div>' +
       '<div id="chartBox"' + (chartImp.running ? '' : ' hidden') + '><div class="progress"><div id="chartBar"></div></div><div class="stat" id="chartTxt"></div></div>' +
       '<h3>Manutenção</h3><div class="row-btns"><button class="btn danger sm" data-a="clear">Apagar mapas baixados</button></div><div id="clearBox"></div>';
     ['dlSat', 'dlMap', 'dlSea'].forEach(function (k) { $('#' + k, pane).onchange = function () { set[k] = this.checked; save(); renderOffline(); }; });
@@ -760,6 +763,7 @@
       else if (a === 'clear') $('#clearBox').innerHTML = '<div class="confirm">Apagar todos os mapas salvos no aparelho? <span class="spacer"></span><button class="btn ghost sm" data-a="clear-no">Cancelar</button><button class="btn danger sm" data-a="clear-yes">Apagar</button></div>';
       else if (a === 'clear-no') $('#clearBox').innerHTML = '';
       else if (a === 'chart-imp') $('#chartInput').click();
+      else if (a === 'chart-dl') downloadCharts();
       else if (a === 'chart-del') { caches.delete(CHART_CACHE).then(function () { set.chartInfo = null; save(); applyLayers(); toast('Cartas removidas'); renderOffline(); }); }
       else if (a === 'clear-yes') { caches.delete(TILE_CACHE).then(function () { toast('Mapas apagados'); dl.total = 0; renderOffline(); }); }
     };
@@ -856,6 +860,32 @@
     var pct = chartImp.total ? Math.round(chartImp.done / chartImp.total * 100) : 0;
     bar.style.width = pct + '%';
     txt.textContent = chartImp.running ? 'Importando ' + chartImp.done + ' de ' + chartImp.total + ' (' + pct + '%)' : chartImp.msg || '';
+  }
+  async function downloadCharts() {
+    if (!navigator.onLine) { toast('Sem internet agora. Conecte para baixar as cartas.'); return; }
+    chartImp = { running: true, done: 0, total: 0, msg: '' };
+    if (curTab === 'offline') renderOffline();
+    var txt = function (m) { var t = $('#chartTxt'); if (t) t.textContent = m; var bx = $('#chartBox'); if (bx) bx.hidden = false; };
+    try {
+      var res = await fetch('cartas/cartas.zip?v=' + CHART_VER, { cache: 'no-store' });
+      if (!res.ok) throw new Error('O site respondeu ' + res.status + '.');
+      var len = +res.headers.get('Content-Length') || 0, got = 0, parts = [];
+      var reader = res.body.getReader();
+      while (true) {
+        var r = await reader.read(); if (r.done) break;
+        parts.push(r.value); got += r.value.length;
+        var bar = $('#chartBar'); if (bar && len) bar.style.width = Math.round(got / len * 100) + '%';
+        txt('Baixando ' + nf(got / 1048576, 1) + (len ? ' de ' + nf(len / 1048576, 1) : '') + ' MB');
+      }
+      var blob = new Blob(parts, { type: 'application/zip' }); parts = null;
+      blob.name = 'Cartas Paraty–Paranaguá';
+      chartImp.running = false;
+      await importCharts(blob);
+    } catch (err) {
+      chartImp.running = false; chartImp.msg = 'Download não concluído: ' + (err && err.message ? err.message : err) + ' Tente de novo com sinal melhor.';
+      toast('Falha ao baixar as cartas', 4000);
+      if (curTab === 'offline') renderOffline(); else chartUi();
+    }
   }
   async function importCharts(file) {
     if (!('caches' in window)) { toast('Este navegador não permite guardar as cartas.'); return; }

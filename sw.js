@@ -1,5 +1,5 @@
 /* Service worker: guarda o app e os mapas para uso sem internet */
-var SHELL = 'shell-v7';
+var SHELL = 'shell-v8';
 var CHARTS = 'cartas-v1';
 var TILES = 'tiles-v1';
 var SHELL_FILES = [
@@ -26,6 +26,9 @@ self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
   var url = new URL(req.url);
+
+  // Pacote de cartas: sempre da internet, sem guardar cópia extra
+  if (url.origin === self.location.origin && url.pathname.indexOf('/cartas/') >= 0) return;
 
   // Cartas náuticas: só existem no aparelho (importadas pelo usuário)
   if (url.origin === self.location.origin && url.pathname.indexOf('/carta/') >= 0) {
