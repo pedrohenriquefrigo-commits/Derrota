@@ -56,6 +56,7 @@
   // ---------- Mapa ----------
   if (set.night) document.documentElement.classList.add('night');
   var map = L.map('map', { zoomControl: false, attributionControl: true, maxZoom: 18, minZoom: 3, worldCopyJump: false, tap: false });
+  map.setView([-24.3, -46.5], 7); // vista inicial antes de qualquer camada
   L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 
   function loadImg(url, noCors) {
@@ -152,7 +153,8 @@
       });
     });
   }
-  map.on('zoomend', function () { drawRoutes(); drawMarks(); });
+  var booted = false;
+  map.on('zoomend', function () { if (booted) { drawRoutes(); drawMarks(); } });
 
   // Toque no mapa: escolher coordenada ou adicionar ponto à rota
   map.on('click', function (e) {
@@ -729,8 +731,8 @@
   applyLayers();
   var allPts = S.routes.reduce(function (a, r) { return a.concat(r.points); }, []).concat(S.marks);
   if (allPts.length) map.fitBounds(L.latLngBounds(allPts.map(function (p) { return [p.lat, p.lon]; })), { paddingTopLeft: [20, 170], paddingBottomRight: [20, 80] });
-  else map.setView([-24.3, -46.5], 7);
   follow = false;
+  booted = true;
   renderAll();
   startGPS();
   applyWake();

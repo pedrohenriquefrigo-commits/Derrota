@@ -1,10 +1,9 @@
 /* Service worker: guarda o app e os mapas para uso sem internet */
-var SHELL = 'shell-v1';
+var SHELL = 'shell-v2';
 var TILES = 'tiles-v1';
 var SHELL_FILES = [
   './', 'index.html', 'style.css', 'geo.js', 'dados.js', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js'
+  'leaflet.css', 'leaflet.js'
 ];
 var TILE_HOSTS = ['server.arcgisonline.com', 'a.basemaps.cartocdn.com', 'tiles.openseamap.org'];
 

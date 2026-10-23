@@ -12,10 +12,20 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="anonymous">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="leaflet.css?v=2">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
+<script>
+/* Mostra na tela qualquer erro de carregamento, para diagnóstico */
+window.addEventListener('error', function (e) {
+  if (e.target && e.target !== window && !/^(SCRIPT|LINK)$/.test(e.target.tagName)) return;
+  var b = document.getElementById('errBox');
+  if (!b) { b = document.createElement('div'); b.id = 'errBox'; b.style.cssText = 'position:fixed;z-index:3000;left:8px;right:8px;bottom:80px;background:#b3261e;color:#fff;font:13px/1.4 monospace;padding:10px 12px;border-radius:10px;white-space:pre-wrap'; document.body.appendChild(b); }
+  var src = e.filename ? e.filename.split('/').pop() : (e.target && (e.target.src || e.target.href) || '');
+  b.textContent += 'Erro: ' + (e.message || 'falha ao carregar ' + src) + (e.lineno ? ' (' + src + ':' + e.lineno + ')' : '') + '\n';
+}, true);
+</script>
 <div id="map" aria-label="Mapa"></div>
 
 <!-- Painel de navegação -->
@@ -120,9 +130,9 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <input type="file" id="fileInput" accept=".gpx,.kml,.csv,.txt,application/gpx+xml,application/vnd.google-earth.kml+xml,text/plain,text/csv" hidden>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin="anonymous"></script>
-<script src="geo.js"></script>
-<script src="dados.js"></script>
-<script src="app.js"></script>
+<script src="leaflet.js?v=2"></script>
+<script src="geo.js?v=2"></script>
+<script src="dados.js?v=2"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
