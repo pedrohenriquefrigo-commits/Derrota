@@ -1,5 +1,5 @@
 /* Service worker: guarda o app e os mapas para uso sem internet */
-var SHELL = 'shell-v2';
+var SHELL = 'shell-v3';
 var TILES = 'tiles-v1';
 var SHELL_FILES = [
   './', 'index.html', 'style.css', 'geo.js', 'dados.js', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
