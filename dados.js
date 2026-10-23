@@ -4,16 +4,22 @@ window.DADOS_INICIAIS = {
   version: 1,
   routes: [
     {
-      id: 'r-navionics',
-      name: 'route183 (Navionics)',
+      id: 'r-184',
+      name: 'route184 (Navionics)',
       color: '#e83fc6',
       draft: false,
       points: [
-        { name: 'Marina do Engenho (saída)', lat: -23.19808, lon: -44.69819, note: 'Calculado a partir da tela do Navionics. Confirme.' },
-        { name: 'Waypoint 1', lat: -23.11899, lon: -44.62598, note: '' },
-        { name: 'Waypoint 2', lat: -23.26717, lon: -44.45923, note: '' },
-        { name: 'Waypoint 3 (fora da Ponta do Boi)', lat: -24.00531, lon: -45.18102, note: '' },
-        { name: 'Barra de Icapara', lat: -24.68685, lon: -47.42140, note: "24°41.211'S 47°25.284'W, coordenada exata do Navionics" }
+        { name: 'Marina do Engenho (saída)', lat: -23.19808, lon: -44.69818, note: 'Aproximado. Confira.' },
+        { name: 'Waypoint 1', lat: -23.18870, lon: -44.65505, note: '' },
+        { name: 'Waypoint 2', lat: -23.18245, lon: -44.64187, note: '' },
+        { name: 'Waypoint 3', lat: -23.19653, lon: -44.57775, note: 'Coordenada de um toque na linha, perto do ponto. Confira.' },
+        { name: 'Waypoint 4 (Ilha Deserta)', lat: -23.21637, lon: -44.54948, note: '' },
+        { name: 'Waypoint 5 (Ponta da Juatinga)', lat: -23.29652, lon: -44.49407, note: '' },
+        { name: 'Waypoint 6 (Ilha Cairuçu)', lat: -23.34747, lon: -44.57105, note: '' },
+        { name: 'Waypoint 7 (Ponta Negra)', lat: -23.37322, lon: -44.60240, note: '' },
+        { name: 'Waypoint 8 (Ponta das Canas)', lat: -23.72403, lon: -45.35167, note: 'Coordenada de um toque na linha, ao sul do ponto. Confira.' },
+        { name: 'Waypoint 9 (Canal de São Sebastião)', lat: -23.82300, lon: -45.39408, note: '' },
+        { name: 'Barra de Icapara', lat: -24.69092, lon: -47.41332, note: '' }
       ]
     }
   ],

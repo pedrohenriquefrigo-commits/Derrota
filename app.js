@@ -21,7 +21,7 @@
   var S = load();
   function freshState() {
     var d = JSON.parse(JSON.stringify(window.DADOS_INICIAIS));
-    return { migr1: true, routes: d.routes, marks: d.marks, selRoute: d.routes[0] && d.routes[0].id, nav: null, settings: Object.assign({}, DEFAULT_SETTINGS), track: [] };
+    return { migr1: true, migr2: true, routes: d.routes, marks: d.marks, selRoute: d.routes[0] && d.routes[0].id, nav: null, settings: Object.assign({}, DEFAULT_SETTINGS), track: [] };
   }
   function load() {
     try {
@@ -34,6 +34,14 @@
           if (s.nav && s.nav.routeId === 'r-interno') s.nav = null;
           if (s.selRoute === 'r-interno') s.selRoute = s.routes[0] && s.routes[0].id;
           s.migr1 = true;
+        }
+        // troca a route183 pela route184
+        if (!s.migr2) {
+          s.routes = (s.routes || []).filter(function (r) { return r.id !== 'r-navionics'; });
+          if (!s.routes.some(function (r) { return r.id === 'r-184'; })) s.routes.unshift(JSON.parse(JSON.stringify(window.DADOS_INICIAIS.routes[0])));
+          if (s.nav && s.nav.routeId === 'r-navionics') s.nav = null;
+          s.selRoute = 'r-184';
+          s.migr2 = true;
         }
         return s;
       }
