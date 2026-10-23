@@ -17,7 +17,7 @@
   function tileUrl(key, z, x, y) { return SOURCES[key].url.replace('{z}', z).replace('{x}', x).replace('{y}', y); }
 
   // ---------- Estado ----------
-  var DEFAULT_SETTINGS = { fmt: 'ddm', decl: -21.5, arrive: 0.1, speed: 5, base: 'sat', sea: true, showMarks: true, showTrack: true, rec: true, night: false, wake: false, buf: 2, zmax: 14, dlSat: true, dlMap: false, dlSea: true, chart: true, chartInfo: null };
+  var DEFAULT_SETTINGS = { fmt: 'ddm', decl: -21.5, arrive: 0.1, speed: 5, base: 'sat', sea: true, showMarks: true, showTrack: true, rec: true, night: false, wake: false, buf: 2, zmax: 14, dlSat: true, dlMap: false, dlSea: true, chart: true, chartInfo: null, hdgSrc: 'compass', hdgLen: 15 };
   var S = load();
   function freshState() {
     var d = JSON.parse(JSON.stringify(window.DADOS_INICIAIS));
@@ -244,11 +244,75 @@
   // ---------- GPS ----------
   var me = { pos: null, acc: null, sog: null, cog: null, last: null, hist: [] };
   var meMarker = null, accCircle = null, follow = true, watchId = null;
-  function meIcon(cog) {
-    var rot = cog == null ? 0 : cog;
-    var shape = cog == null ? '<circle cx="11" cy="11" r="7" fill="#1e90ff" stroke="#fff" stroke-width="3"/>' :
-      '<path d="M11 1 4 20l7-4 7 4z" fill="#1e90ff" stroke="#fff" stroke-width="2" stroke-linejoin="round" transform="rotate(' + rot + ' 11 11)"/>';
-    return L.divIcon({ className: 'me-icon', iconSize: [22, 22], iconAnchor: [11, 11], html: '<svg viewBox="0 0 22 22">' + shape + '</svg>' });
+  function meIcon(hdg) {
+    var shape = hdg == null ? '<circle cx="17" cy="17" r="9" fill="#1e90ff" stroke="#fff" stroke-width="4"/>' :
+      '<g transform="rotate(' + hdg.toFixed(1) + ' 17 17)"><path d="M17 2 7 31l10-6 10 6z" fill="#1e90ff" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></g>';
+    return L.divIcon({ className: 'me-icon', iconSize: [34, 34], iconAnchor: [17, 17], html: '<svg viewBox="0 0 34 34" width="34" height="34">' + shape + '</svg>' });
+  }
+  // ---------- Bússola do celular e linha de proa ----------
+  var compass = { on: false, mag: null, t: 0, listening: false };
+  var hdgLayer = L.layerGroup().addTo(map);
+  function screenAngle() { try { return (screen.orientation && screen.orientation.angle) || window.orientation || 0; } catch (e) { return 0; } }
+  function onOrient(e) {
+    var h = null;
+    if (e.webkitCompassHeading != null && !isNaN(e.webkitCompassHeading)) h = e.webkitCompassHeading;   // iPhone (magnético)
+    else if (e.absolute && e.alpha != null) h = 360 - e.alpha;                                         // Android
+    if (h == null) return;
+    h = G.norm360(h + screenAngle());
+    if (compass.mag == null) compass.mag = h;
+    else { var d = ((h - compass.mag + 540) % 360) - 180; compass.mag = G.norm360(compass.mag + d * 0.25); } // suaviza
+    compass.t = Date.now();
+    if (!onOrient._raf) onOrient._raf = setTimeout(function () { onOrient._raf = null; drawMe(); updateHdgCell(); }, 200);
+  }
+  function startCompass() {
+    var go = function () {
+      if (compass.listening) return;
+      window.addEventListener('deviceorientationabsolute', onOrient, true);
+      window.addEventListener('deviceorientation', onOrient, true);
+      compass.listening = true; compass.on = true; $('#btnCompass').classList.add('on');
+      setTimeout(function () { if (compass.on && compass.mag == null) toast('Bússola sem leitura. Este aparelho pode não ter o sensor, ou ele precisa de calibração.', 5000); }, 3000);
+    };
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function (r) {
+        if (r !== 'granted') toast('Sem permissão para a bússola. Libere "Movimento e orientação" para o navegador.', 5000);
+        go();
+      }).catch(function () { go(); });
+    } else if (window.DeviceOrientationEvent) go();
+    else toast('Este aparelho não tem bússola disponível.');
+  }
+  function stopCompass() {
+    window.removeEventListener('deviceorientationabsolute', onOrient, true);
+    window.removeEventListener('deviceorientation', onOrient, true);
+    compass.listening = false; compass.on = false; compass.mag = null; $('#btnCompass').classList.remove('on');
+    drawMe(); updateHdgCell();
+  }
+  // proa verdadeira usada no mapa: bússola (se ligada e lendo) ou rumo do GPS
+  function headingTrue() {
+    var compOk = compass.on && compass.mag != null && Date.now() - compass.t < 5000;
+    if (set.hdgSrc === 'compass' && compOk) return { v: G.norm360(compass.mag + set.decl), src: 'bússola' };
+    if (me.cog != null) return { v: me.cog, src: 'GPS' };
+    if (compOk) return { v: G.norm360(compass.mag + set.decl), src: 'bússola' };
+    return null;
+  }
+  function drawMe() {
+    if (!meMarker || !me.pos) return;
+    var h = headingTrue();
+    meMarker.setIcon(meIcon(h ? h.v : null));
+    hdgLayer.clearLayers();
+    if (!h || !(set.hdgLen > 0)) return;
+    var len = +set.hdgLen, end = G.destination(me.pos, len, h.v);
+    L.polyline([[me.pos.lat, me.pos.lon], [end.lat, end.lon]], { color: '#1e90ff', weight: 3, opacity: .9, dashArray: '10 6', interactive: false }).addTo(hdgLayer);
+    var step = len <= 6 ? 1 : 5;
+    for (var d = step; d <= len + 1e-9; d += step) {
+      var q = G.destination(me.pos, d, h.v);
+      L.circleMarker([q.lat, q.lon], { radius: 4, color: '#fff', weight: 2, fillColor: '#1e90ff', fillOpacity: 1, interactive: false })
+        .bindTooltip(d + ' NM', { permanent: true, direction: 'right', offset: [6, 0], className: 'wp-label' }).addTo(hdgLayer);
+    }
+  }
+  function updateHdgCell() {
+    var lbl = $('#navCogLbl'), h = headingTrue();
+    if (compass.on && compass.mag != null) { lbl.textContent = 'Bússola'; $('#navCog').textContent = fDeg(compass.mag) + 'M'; }
+    else { lbl.textContent = 'Proa GPS'; $('#navCog').textContent = me.cog != null ? fDeg(mag(me.cog)) + 'M' : '—'; }
   }
   function onPos(pos) {
     var c = pos.coords, p = { lat: c.latitude, lon: c.longitude, t: pos.timestamp || Date.now() };
@@ -266,12 +330,13 @@
     var ll = [p.lat, p.lon];
     if (!meMarker) {
       accCircle = L.circle(ll, { radius: c.accuracy, color: '#1e90ff', weight: 1, fillOpacity: .08, interactive: false }).addTo(map);
-      meMarker = L.marker(ll, { icon: meIcon(me.cog), zIndexOffset: 1000, interactive: false }).addTo(map);
+      meMarker = L.marker(ll, { icon: meIcon(null), zIndexOffset: 1000, interactive: false }).addTo(map);
       if (follow) map.setView(ll, Math.max(map.getZoom(), 13));
     } else {
-      meMarker.setLatLng(ll).setIcon(meIcon(me.cog)); accCircle.setLatLng(ll).setRadius(c.accuracy);
+      meMarker.setLatLng(ll); accCircle.setLatLng(ll).setRadius(c.accuracy);
       if (follow) map.panTo(ll, { animate: true });
     }
+    drawMe();
     recordTrack(p);
     updateNav();
   }
@@ -330,7 +395,7 @@
     $('#navActions').hidden = !S.nav;
     $('#btnPrevWp').hidden = $('#btnNextWp').hidden = !(S.nav && S.nav.type === 'route');
     $('#navSog').textContent = me.sog != null ? nf(me.sog, 1) + ' nós' : '—';
-    $('#navCog').textContent = me.cog != null ? fDeg(mag(me.cog)) + 'M' : '—';
+    updateHdgCell();
     $('#navGps').textContent = me.acc != null ? '±' + Math.round(me.acc) + ' m' : '—';
     $('#navPos').textContent = me.pos ? fCoord(me.pos) : $('#navPos').textContent;
     if (!t) {
@@ -837,6 +902,9 @@
       '<label class="field">Raio de chegada no waypoint (NM)<input type="number" step="0.05" min="0.02" id="arrIn" value="' + set.arrive + '" inputmode="decimal"></label>' +
       '<label class="opt"><input type="checkbox" id="recIn"' + (set.rec ? ' checked' : '') + '> Gravar rastro percorrido</label>' +
       '<label class="opt"><input type="checkbox" id="wakeIn"' + (set.wake ? ' checked' : '') + '> Manter a tela ligada</label>' +
+      '<div class="grid2"><label class="field">Linha de proa segue<select id="hdgSrcSel"><option value="compass">Bússola do celular</option><option value="gps">Rumo do GPS</option></select></label>' +
+      '<label class="field">Comprimento da linha<select id="hdgLenSel"><option value="0">Desligada</option><option value="5">5 NM</option><option value="10">10 NM</option><option value="15">15 NM</option><option value="20">20 NM</option><option value="30">30 NM</option></select></label></div>' +
+      '<p class="help">A bússola só vale como proa com o celular preso alinhado à linha de centro do barco, com a ponta para a proa. Ferro, motor e alto-falantes perto dele desviam a leitura. Sem a bússola, a linha usa o rumo do GPS, que só aparece com o barco andando.</p>' +
       '<div class="muted">Rastro: ' + S.track.length + ' pontos</div>' +
       '<div class="row-btns"><button class="btn sm" data-a="trk-exp">Exportar rastro (GPX)</button><button class="btn sm" data-a="trk-clr">Limpar rastro</button></div>' +
       '<h3>Backup</h3><div class="row-btns"><button class="btn sm" data-a="all-exp">Exportar tudo (GPX)</button><button class="btn sm" data-a="import">Importar arquivo</button></div>' +
@@ -848,6 +916,9 @@
     num('#declIn', 'decl'); num('#spdIn', 'speed', 0.5); num('#arrIn', 'arrive', 0.02);
     $('#recIn', pane).onchange = function () { set.rec = this.checked; save(); };
     $('#wakeIn', pane).onchange = function () { set.wake = this.checked; save(); applyWake(); };
+    $('#hdgSrcSel', pane).value = set.hdgSrc; $('#hdgLenSel', pane).value = String(set.hdgLen);
+    $('#hdgSrcSel', pane).onchange = function () { set.hdgSrc = this.value; save(); drawMe(); updateHdgCell(); if (this.value === 'compass' && !compass.on) startCompass(); };
+    $('#hdgLenSel', pane).onchange = function () { set.hdgLen = +this.value; save(); drawMe(); };
     pane.onclick = function (e) {
       var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a;
       if (a === 'trk-exp') { if (S.track.length < 2) toast('O rastro ainda está vazio.'); else shareFile('rastro.gpx', G.toGPX([], [], S.track)); }
@@ -859,6 +930,8 @@
       else if (a === 'reset-yes') { var keep = S.settings, trk = S.track; S = freshState(); S.settings = keep; S.track = trk; set = S.settings; save(true); renderAll(); fitRoute(); toast('Dados iniciais restaurados'); }
     };
   }
+
+  $('#btnCompass').onclick = function () { if (compass.on) stopCompass(); else startCompass(); };
 
   // ---------- Camadas e modo noturno ----------
   $('#btnLayers').onclick = function (e) { e.stopPropagation(); $('#layerMenu').hidden = !$('#layerMenu').hidden; };

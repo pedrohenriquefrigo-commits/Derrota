@@ -12,8 +12,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
-<link rel="stylesheet" href="leaflet.css?v=5">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="leaflet.css?v=6">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 <script>
@@ -46,7 +46,7 @@ window.addEventListener('error', function (e) {
   </div>
   <div class="nav-row small">
     <div class="cell"><span class="lbl">Vel.</span><span class="val" id="navSog">—</span></div>
-    <div class="cell"><span class="lbl">Proa GPS</span><span class="val" id="navCog">—</span></div>
+    <div class="cell"><span class="lbl" id="navCogLbl">Proa GPS</span><span class="val" id="navCog">—</span></div>
     <div class="cell"><span class="lbl">Fora da rota</span><span class="val" id="navXte">—</span></div>
     <div class="cell"><span class="lbl">GPS</span><span class="val" id="navGps">—</span></div>
   </div>
@@ -65,6 +65,9 @@ window.addEventListener('error', function (e) {
   </button>
   <button id="btnNight" class="fab" title="Modo noturno" aria-label="Modo noturno">
     <svg viewBox="0 0 24 24"><path d="M20 15.3A8.5 8.5 0 0 1 8.7 4a8.5 8.5 0 1 0 11.3 11.3Z"/></svg>
+  </button>
+  <button id="btnCompass" class="fab" title="Bússola do celular" aria-label="Ligar bússola do celular">
+    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm3.9 4.1-5.5 2.3-2.3 5.5 5.5-2.3 2.3-5.5ZM12 10.8a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Z"/></svg>
   </button>
   <button id="btnFollow" class="fab primary" title="Centralizar em mim" aria-label="Centralizar em mim">
     <svg viewBox="0 0 24 24"><path d="M12 2 4.5 20.3l.7.7L12 18l6.8 3 .7-.7L12 2Z"/></svg>
@@ -132,9 +135,9 @@ window.addEventListener('error', function (e) {
 <input type="file" id="chartInput" accept=".zip,application/zip" hidden>
 <input type="file" id="fileInput" accept=".gpx,.kml,.csv,.txt,application/gpx+xml,application/vnd.google-earth.kml+xml,text/plain,text/csv" hidden>
 
-<script src="leaflet.js?v=5"></script>
-<script src="geo.js?v=5"></script>
-<script src="dados.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="leaflet.js?v=6"></script>
+<script src="geo.js?v=6"></script>
+<script src="dados.js?v=6"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
