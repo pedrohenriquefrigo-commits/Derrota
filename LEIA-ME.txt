@@ -1,0 +1,35 @@
+DERROTA PARATY–PARANAGUÁ
+App de mapa offline com GPS, rotas e waypoints editáveis.
+
+1. PUBLICAR (uma vez, no computador)
+   - Descompacte o zip.
+   - Abra https://app.netlify.com/drop e arraste a pasta "mapa-offline" para a página.
+   - Crie a conta grátis quando pedir, senão o link expira em pouco tempo.
+   - Você recebe um link https://algum-nome.netlify.app
+
+2. INSTALAR NO CELULAR
+   - iPhone: abra o link no Safari > Compartilhar > Adicionar à Tela de Início.
+   - Android: abra no Chrome > menu ⋮ > Instalar app.
+   - Abra pelo ícone e permita a localização.
+
+3. BAIXAR O MAPA (com internet, antes de sair)
+   - Aba Offline > Baixar trajeto. Com as opções padrão são uns 75 MB.
+   - Para o Varadouro: aproxime o mapa no canal e use "Baixar área da tela"
+     com detalhe 15 ou 16.
+   - No iPhone, baixe de dentro do app instalado (o Safari guarda separado).
+
+4. USAR
+   - Rotas: Navegar, Editar no mapa (toque para adicionar, arraste para mover),
+     ✎ para editar nome/coordenada/observação, ↑↓ para reordenar,
+     "inserir ponto aqui", colar lista de coordenadas, importar GPX/KML,
+     exportar GPX.
+   - Pontos: referências da viagem com as proas da sua lista. "＋" põe o ponto
+     na rota selecionada; "➤" navega direto até ele.
+   - Rumos: M = magnético (declinação em Ajustes, padrão -21,5°), V = verdadeiro.
+     Fora da rota: BE = boreste, BB = bombordo.
+   - Lua: modo noturno vermelho.
+
+Coordenadas aceitas: 24°41.211'S 47°25.284'W · S 24 41.211 W 47 25.284 ·
+23°17'30"S 44°30'10"W · -24.6869, -47.4214
+
+Apoio à navegação. Não substitui carta náutica, ecobatímetro nem vigilância.

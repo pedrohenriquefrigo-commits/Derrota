@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Derrota Paraty–Paranaguá</title>
+<meta name="theme-color" content="#0e1a22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Derrota">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="anonymous">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="map" aria-label="Mapa"></div>
+
+<!-- Painel de navegação -->
+<header id="nav" class="nav">
+  <div class="nav-row">
+    <div class="cell wide">
+      <span class="lbl" id="navTarget">Sem rota ativa</span>
+      <span class="val" id="navDist">—</span>
+    </div>
+    <div class="cell">
+      <span class="lbl">Rumo</span>
+      <span class="val" id="navBrg">—</span>
+    </div>
+    <div class="cell">
+      <span class="lbl">Chegada</span>
+      <span class="val" id="navEta">—</span>
+    </div>
+  </div>
+  <div class="nav-row small">
+    <div class="cell"><span class="lbl">Vel.</span><span class="val" id="navSog">—</span></div>
+    <div class="cell"><span class="lbl">Proa GPS</span><span class="val" id="navCog">—</span></div>
+    <div class="cell"><span class="lbl">Fora da rota</span><span class="val" id="navXte">—</span></div>
+    <div class="cell"><span class="lbl">GPS</span><span class="val" id="navGps">—</span></div>
+  </div>
+  <div class="nav-pos" id="navPos">Aguardando GPS…</div>
+  <div class="nav-actions" id="navActions" hidden>
+    <button id="btnPrevWp" class="chip">‹ Anterior</button>
+    <button id="btnNextWp" class="chip">Próximo ›</button>
+    <button id="btnStopNav" class="chip">Parar</button>
+  </div>
+</header>
+
+<!-- Botões flutuantes -->
+<div class="fabs">
+  <button id="btnLayers" class="fab" title="Camadas" aria-label="Camadas">
+    <svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 10-5-10-5Zm-8.2 9L2 13l10 5 10-5-1.8-1-8.2 4.1L3.8 12Zm0 4L2 17l10 5 10-5-1.8-1-8.2 4.1L3.8 16Z"/></svg>
+  </button>
+  <button id="btnNight" class="fab" title="Modo noturno" aria-label="Modo noturno">
+    <svg viewBox="0 0 24 24"><path d="M20 15.3A8.5 8.5 0 0 1 8.7 4a8.5 8.5 0 1 0 11.3 11.3Z"/></svg>
+  </button>
+  <button id="btnFollow" class="fab primary" title="Centralizar em mim" aria-label="Centralizar em mim">
+    <svg viewBox="0 0 24 24"><path d="M12 2 4.5 20.3l.7.7L12 18l6.8 3 .7-.7L12 2Z"/></svg>
+  </button>
+</div>
+
+<div id="layerMenu" class="pop" hidden>
+  <div class="pop-title">Mapa de fundo</div>
+  <label class="opt"><input type="radio" name="base" value="sat" id="baseSat" checked> Satélite</label>
+  <label class="opt"><input type="radio" name="base" value="map" id="baseMap"> Mapa</label>
+  <div class="pop-title">Sobreposição</div>
+  <label class="opt"><input type="checkbox" id="ovSea" checked> Sinais náuticos (OpenSeaMap)</label>
+  <label class="opt"><input type="checkbox" id="ovMarks" checked> Pontos de referência</label>
+  <label class="opt"><input type="checkbox" id="ovTrack" checked> Rastro percorrido</label>
+</div>
+
+<div id="mapHint" class="hint" hidden></div>
+
+<!-- Folha inferior -->
+<section id="sheet" class="sheet collapsed">
+  <button class="grip" id="sheetGrip" aria-label="Abrir ou fechar painel"><span></span></button>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="rotas">Rotas</button>
+    <button class="tab" data-tab="pontos">Pontos</button>
+    <button class="tab" data-tab="offline">Offline</button>
+    <button class="tab" data-tab="ajustes">Ajustes</button>
+  </nav>
+  <div class="sheet-body">
+    <div class="pane" id="pane-rotas"></div>
+    <div class="pane" id="pane-pontos" hidden></div>
+    <div class="pane" id="pane-offline" hidden></div>
+    <div class="pane" id="pane-ajustes" hidden></div>
+  </div>
+</section>
+
+<!-- Editor de ponto -->
+<div id="editor" class="modal" hidden>
+  <form class="modal-card" id="editorForm" autocomplete="off">
+    <h2 id="edTitle">Editar ponto</h2>
+    <label class="field">Nome
+      <input id="edName" type="text" maxlength="60">
+    </label>
+    <label class="field">Coordenada
+      <input id="edCoord" type="text" inputmode="text" spellcheck="false" placeholder="24°41.211'S 47°25.284'W">
+      <small id="edCoordHelp" class="help">Aceita graus e minutos (24°41.211'S 47°25.284'W), graus-min-seg ou decimal (-24.6869, -47.4214).</small>
+    </label>
+    <label class="field" id="edNoteWrap">Observação
+      <input id="edNote" type="text" maxlength="140" placeholder="Ex.: proa 286° bússola, passar 1/4 NM por fora">
+    </label>
+    <div class="row-btns">
+      <button type="button" class="btn ghost" id="edPick">Escolher no mapa</button>
+      <button type="button" class="btn ghost" id="edHere">Usar minha posição</button>
+    </div>
+    <div class="row-btns end">
+      <button type="button" class="btn danger" id="edDelete">Apagar</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn ghost" id="edCancel">Cancelar</button>
+      <button type="submit" class="btn primary" id="edSave">Salvar</button>
+    </div>
+  </form>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileInput" accept=".gpx,.kml,.csv,.txt,application/gpx+xml,application/vnd.google-earth.kml+xml,text/plain,text/csv" hidden>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin="anonymous"></script>
+<script src="geo.js"></script>
+<script src="dados.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
