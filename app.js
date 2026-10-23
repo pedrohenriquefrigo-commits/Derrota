@@ -18,11 +18,11 @@
   function tileUrl(key, z, x, y) { return SOURCES[key].url.replace('{z}', z).replace('{x}', x).replace('{y}', y); }
 
   // ---------- Estado ----------
-  var DEFAULT_SETTINGS = { fmt: 'ddm', decl: -21.5, arrive: 0.1, speed: 5, base: 'sat', sea: true, showMarks: true, showTrack: true, rec: true, night: false, wake: false, buf: 2, zmax: 14, dlSat: true, dlMap: false, dlSea: true, chart: true, chartInfo: null, hdgSrc: 'compass', hdgLen: 15 };
+  var DEFAULT_SETTINGS = { fmt: 'ddm', decl: -21.5, arrive: 0.1, speed: 5, base: 'sat', sea: true, showMarks: true, showTrack: true, rec: true, night: false, wake: true, buf: 2, zmax: 14, dlSat: true, dlMap: false, dlSea: true, chart: true, chartInfo: null, hdgSrc: 'compass', hdgLen: 15 };
   var S = load();
   function freshState() {
     var d = JSON.parse(JSON.stringify(window.DADOS_INICIAIS));
-    return { migr1: true, migr2: true, routes: d.routes, marks: d.marks, selRoute: d.routes[0] && d.routes[0].id, nav: null, settings: Object.assign({}, DEFAULT_SETTINGS), track: [] };
+    return { migr1: true, migr2: true, migr3: true, routes: d.routes, marks: d.marks, selRoute: d.routes[0] && d.routes[0].id, nav: null, settings: Object.assign({}, DEFAULT_SETTINGS), track: [] };
   }
   function load() {
     try {
@@ -44,6 +44,7 @@
           s.selRoute = 'r-184';
           s.migr2 = true;
         }
+        if (!s.migr3) { s.settings.wake = true; s.migr3 = true; }
         return s;
       }
     } catch (e) { }
@@ -1006,6 +1007,38 @@
   renderAll();
   startGPS();
   applyWake();
+  // a tela pode ser liberada pelo sistema; pede de novo ao tocar
+  document.addEventListener('click', function () { if (set.wake && !wakeLock) applyWake(); }, true);
+
+  // ---------- Instalar como app ----------
+  var installEvt = null;
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function hideInstall(remember) {
+    $('#installBar').hidden = true;
+    if (remember) try { localStorage.setItem('derrota.noInstall', '1'); } catch (e) { }
+  }
+  function showInstall(text, btn) {
+    try { if (localStorage.getItem('derrota.noInstall')) return; } catch (e) { }
+    $('#installTxt').textContent = text;
+    $('#installBtn').hidden = !btn;
+    $('#installBar').hidden = false;
+  }
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); installEvt = e;
+    if (!standalone) showInstall('Instale o app para abrir pelo ícone, em tela cheia e sem internet.', true);
+  });
+  window.addEventListener('appinstalled', function () { hideInstall(true); toast('App instalado. Abra pelo ícone na tela inicial.', 4000); });
+  $('#installBtn').onclick = function () {
+    if (!installEvt) return;
+    installEvt.prompt();
+    installEvt.userChoice.then(function (c) { if (c.outcome === 'accepted') hideInstall(true); installEvt = null; });
+  };
+  $('#installClose').onclick = function () { hideInstall(true); };
+  if (!standalone && isIOS) {
+    var inApp = /FBAN|FBAV|Instagram|WhatsApp|CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
+    showInstall(inApp ? 'Para instalar, abra este link no Safari e toque em Compartilhar > Adicionar à Tela de Início.' : 'Para instalar: toque em Compartilhar e depois em Adicionar à Tela de Início.', false);
+  }
   setInterval(function () { if (curTab === 'pontos' && me.pos && !sheet.classList.contains('collapsed')) renderMarks(); }, 15000);
 
   if ('serviceWorker' in navigator) {

@@ -189,3 +189,8 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
   .fabs { right: 452px; bottom: 32px; }
   .pop { right: 512px; bottom: 32px; }
 }
+
+/* Aviso de instalação */
+.install { position: fixed; z-index: 900; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); top: calc(env(safe-area-inset-top) + 150px); display: flex; gap: 10px; align-items: center; background: var(--panel-solid); color: var(--fg); border: 1px solid var(--accent); border-radius: 12px; padding: 10px 8px 10px 14px; box-shadow: var(--shadow); font-size: 14px; }
+.install span { flex: 1; min-width: 0; }
+.install .ico { color: var(--muted); flex: none; }
